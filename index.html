@@ -674,56 +674,106 @@ function renderKeywordGrid(words,label) {
 }
 
 // ---- Generator ----
+
 function renderGenerator(el) {
+  var savedKey = localStorage.getItem('deepseek_api_key') || '';
+  var savedModel = localStorage.getItem('deepseek_model') || 'deepseek-reasoner';
   el.innerHTML=`
     <div class="gen-grid">
       <div class="gen-config">
         <h3>⚙️ 内容配置</h3>
+        <div class="api-config" style="margin-bottom:16px;padding:16px;background:#f8f9fb;border-radius:8px;border:1px solid var(--border)">
+          <div class="api-config-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer" onclick="toggleApiConfig()">
+            <span style="font-size:14px;font-weight:600">🔌 DeepSeek API 配置</span>
+            <span id="apiStatus" style="font-size:12px;padding:2px 10px;border-radius:10px;background:var(--accent);color:var(--primary)">${savedKey ? '✅ 已配置' : '⚪ 未配置'}</span>
+          </div>
+          <div id="apiConfigBody">
+            <div class="form-group" style="margin-bottom:8px">
+              <input type="password" id="apiKeyInput" placeholder="输入 DeepSeek API Key（sk-...）" value="${savedKey}" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font-size:14px;outline:none;font-family:monospace;background:var(--card)">
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+              <select id="apiModel" style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:var(--card);flex:1;min-width:150px">
+                <option value="deepseek-reasoner"${savedModel==='deepseek-reasoner'?' selected':''}>🧠 deepseek-reasoner（深度思考 · 联网推理）</option>
+                <option value="deepseek-chat"${savedModel==='deepseek-chat'?' selected':''}>💬 deepseek-chat（快速对话）</option>
+              </select>
+              <button class="btn btn-sm btn-outline" onclick="testDeepSeekConnection()">🔌 测试连接</button>
+              <button class="btn btn-sm btn-accent" onclick="saveApiKey()">💾 保存配置</button>
+            </div>
+            <div id="apiTestResult" style="font-size:12px;color:var(--text2);min-height:20px;padding:4px 0"></div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;padding:8px 10px;background:var(--card);border-radius:6px">
+              💡 没有 API Key？去 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> 注册获取
+               · Key 仅保存在你本地浏览器，不会上传到任何服务器
+            </div>
+          </div>
+        </div>
         <div class="form-group">
           <label>选择产品</label>
-          <select id="genProduct">${COMPANY.products.map(p=>`<option value="${p}">${p}</option>`).join('')}</select>
+          <select id="genProduct">${COMPANY.products.map(function(p){return '<option value="'+p+'">'+p+'</option>';}).join('')}</select>
         </div>
         <div class="form-group">
           <label>选择平台</label>
-          <select id="genPlatform">${PLATFORMS.map(p=>`<option value="${p.id}">${p.icon} ${p.name}</option>`).join('')}</select>
+          <select id="genPlatform">${PLATFORMS.map(function(p){return '<option value="'+p.id+'">'+p.icon+' '+p.name+'</option>';}).join('')}</select>
         </div>
         <div class="form-group">
           <label>附加指令（可选）</label>
-          <textarea id="genExtra" placeholder="示例：突出价格优势，强调现货供应…"></textarea>
+          <textarea id="genExtra" placeholder="示例：突出价格优势，强调现货供应，语气专业…"></textarea>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="doGenerate()"><span id="genBtnIcon">✨</span> <span id="genBtnText">AI 深度生成</span></button>
-          <button class="btn btn-outline" onclick="doGenerate();this.innerHTML='已加入批量'">📋 加入批量</button>
           <button class="btn btn-accent" onclick="batchGenerateAll()">⚡ 一键生成全部</button>
         </div>
       </div>
       <div class="gen-result" id="genResult">
         <div class="empty-state">
           <div class="icon">🤖</div>
-          <p>选择产品和平台后点击「AI 深度生成」<br>系统将模拟 DeepSeek 深度思考流程<br>分析用户意图 → 制定内容策略 → 输出标题和文案</p>
-          <p style="margin-top:12px;font-size:12px;opacity:.7">配置 DeepSeek API Key 后可接入真实深度思考模型</p>
+          <p>选择产品和平台后点击「AI 深度生成」<br>配置 DeepSeek API Key 后将调用真实深度思考模型<br>未配置时使用本地模板引擎</p>
+          <p style="margin-top:12px;font-size:12px;opacity:.7">建议使用 deepseek-reasoner 以获得最佳效果</p>
         </div>
       </div>
     </div>
   `;
 }
 
-function doGenerate() {
-  const product=document.getElementById('genProduct')?.value || COMPANY.products[0];
-  const platform=document.getElementById('genPlatform')?.value || '1688';
-  const extra=document.getElementById('genExtra')?.value || '';
+async function doGenerate() {
+  var product = document.getElementById('genProduct')?.value || COMPANY.products[0];
+  var platform = document.getElementById('genPlatform')?.value || '1688';
+  var extra = document.getElementById('genExtra')?.value || '';
+  var apiKey = getApiKey();
+  var resultEl = document.getElementById('genResult');
   
-  const resultEl=document.getElementById('genResult');
-  resultEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px"><div class="spinner" style="width:32px;height:32px;border-color:#d8e0e8;border-top-color:var(--primary);margin-bottom:16px"></div><p style="color:var(--text2);font-size:14px">DeepSeek 深度思考中<span class="loading-dots"></span></p><p style="color:var(--text2);font-size:12px;margin-top:4px">分析用户意图 · 制定内容策略 · 生成营销文案</p></div>`;
-  
-  setTimeout(()=>{
-    const result=generateContent(product,platform);
-    if(extra)result.copy+='\n\n【附加指令】'+extra;
-    generatedCache.push(result);
-    displayResult(result,resultEl);
-  },800);
+  if (apiKey) {
+    var model = document.getElementById('apiModel')?.value || 'deepseek-reasoner';
+    var modelLabel = model.includes('reasoner') ? '深度思考 (reasoner)' : '快速对话 (chat)';
+    resultEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px">' +
+      '<div class="spinner" style="width:36px;height:36px;border-color:#d8e0e8;border-top-color:var(--primary);margin-bottom:16px;border-width:3px"></div>' +
+      '<p style="color:var(--text2);font-size:14px">DeepSeek ' + (model.includes('reasoner') ? '深度思考' : '生成') + '中<span class="loading-dots"></span></p>' +
+      '<p style="color:var(--text2);font-size:12px;margin-top:4px">正在调用真实 DeepSeek API · ' + modelLabel + '</p>' +
+      '<p style="color:var(--text2);font-size:11px;margin-top:2px">分析用户意图 → 生成营销文案</p></div>';
+    
+    try {
+      var result = await callDeepSeekAPI(apiKey, model, product, platform, extra);
+      generatedCache.push(result);
+      displayResult(result, resultEl);
+    } catch(e) {
+      resultEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--red)">' +
+        '<div style="font-size:48px;margin-bottom:12px">❌</div>' +
+        '<p style="font-size:14px;font-weight:600">API 调用失败</p>' +
+        '<p style="font-size:12px;color:var(--text2);margin-top:4px;max-width:350px;text-align:center">' + e.message.replace(/`/g,'') + '</p>' +
+        '<button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="testDeepSeekConnection()">🔌 检查 API 连接</button></div>';
+    }
+  } else {
+    resultEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px">' +
+      '<div class="spinner" style="width:32px;height:32px;border-color:#d8e0e8;border-top-color:var(--primary);margin-bottom:16px"></div>' +
+      '<p style="color:var(--text2);font-size:14px">本地模板生成中<span class="loading-dots"></span></p></div>';
+    
+    setTimeout(function(){
+      var result = generateContent(product, platform);
+      if (extra) result.copy += '\n\n【附加指令】' + extra;
+      generatedCache.push(result);
+      displayResult(result, resultEl);
+    }, 500);
+  }
 }
-
 function displayResult(result,el) {
   const platformInfo=PLATFORMS.find(p=>p.id===result.platform)||{icon:'📄',name:result.platformName};
   el.innerHTML=`
@@ -749,6 +799,154 @@ function displayResult(result,el) {
   `;
 }
 
+
+// ===== DeepSeek API 功能 =====
+
+function getApiKey() {
+  var input = document.getElementById('apiKeyInput');
+  if (input && input.value) return input.value.trim();
+  return localStorage.getItem('deepseek_api_key') || '';
+}
+
+function saveApiKey() {
+  var input = document.getElementById('apiKeyInput');
+  if (!input) return;
+  var key = input.value.trim();
+  if (key) {
+    localStorage.setItem('deepseek_api_key', key);
+    var modelEl = document.getElementById('apiModel');
+    if (modelEl) localStorage.setItem('deepseek_model', modelEl.value);
+    var status = document.getElementById('apiStatus');
+    if (status) {
+      status.textContent = '✅ 已配置';
+      status.style.background = '#2e8b57';
+      status.style.color = '#fff';
+    }
+    showToast('API Key 已保存到本地浏览器', 'success');
+  } else {
+    showToast('请输入 API Key', 'error');
+  }
+}
+
+async function testDeepSeekConnection() {
+  var key = getApiKey();
+  if (!key) {
+    document.getElementById('apiTestResult').innerHTML = '<span style="color:var(--red)">❌ 请先输入 API Key</span>';
+    return;
+  }
+  var resultEl = document.getElementById('apiTestResult');
+  if (!resultEl) return;
+  resultEl.innerHTML = '<span style="color:var(--text2)">⏳ 测试连接中...</span>';
+  
+  try {
+    var resp = await fetch('https://api.deepseek.com/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (resp.ok) {
+      var data = await resp.json();
+      var modelCount = (data.data || []).length;
+      resultEl.innerHTML = '<span style="color:var(--green)">✅ 连接成功！已认证 ' + modelCount + ' 个模型可用</span>';
+      saveApiKey();
+    } else if (resp.status === 401) {
+      resultEl.innerHTML = '<span style="color:var(--red)">❌ 认证失败：API Key 无效或已过期</span>';
+    } else {
+      var errText = await resp.text();
+      resultEl.innerHTML = '<span style="color:var(--red)">❌ 服务器错误 (' + resp.status + '): ' + errText.substring(0, 100) + '</span>';
+    }
+  } catch(e) {
+    resultEl.innerHTML = '<span style="color:var(--red)">❌ 网络错误：' + e.message + '</span>';
+  }
+}
+
+async function callDeepSeekAPI(apiKey, model, product, platform, extra) {
+  var platformInfo = PLATFORMS.find(function(p){return p.id === platform;}) || {name: platform, titleMax: 30, tip: ''};
+  var keywords = collectKeywords(product);
+  var prompt = '你是一位资深的工业品内容营销专家，专门为化工防腐设备行业服务。\n\n' +
+    '## 任务\n' +
+    '为【江苏兆辉防腐科技有限公司】的 **' + product + '** 产品，生成适合 **' + platformInfo.name + '** 平台的标题和营销文案。\n\n' +
+    '## 平台规则\n' +
+    (platformInfo.tip || '') + '\n' +
+    '- 标题建议长度: ' + platformInfo.titleMax + '字以内\n' +
+    '- 内容风格: ' + (platformInfo.style || '专业') + '\n\n' +
+    '## 产品背景\n' +
+    '公司名称：江苏兆辉防腐科技有限公司\n' +
+    '所在地：江苏无锡惠山区前洲工业园鑫园路5号\n' +
+    '主营业务：钢衬塑设备、钢衬四氟设备、滚塑防腐设备、非标防腐设备定制\n' +
+    '核心工艺：滚塑（PE/PP/PO）、衬塑（PP/四氟）、喷涂（PFA/PTFE）\n' +
+    '应用行业：化工、环保、医药、冶金、电镀\n\n' +
+    '## 相关关键词（供参考）\n' +
+    keywords.join('、') + '\n\n' +
+    (extra ? '## 附加指令\n' + extra + '\n\n' : '') +
+    '## 要求\n' +
+    '1. 先进行深度思考（分析用户搜索意图、竞争环境、平台特性）\n' +
+    '2. 输出一个吸引人的标题（符合' + platformInfo.name + '平台规则）\n' +
+    '3. 输出完整的营销文案/脚本\n' +
+    '4. 文案要突出：厂家直销、工艺优势、应用行业、定制能力\n' +
+    '5. 确保内容专业、可信、有转化力\n\n' +
+    '请严格按以下格式输出，不要有任何额外内容：\n' +
+    '【深度思考】\n[你的分析过程]\n\n' +
+    '【标题】\n[标题文本]\n\n' +
+    '【文案】\n[完整文案]';
+
+  var resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        {role: 'system', content: '你是江苏兆辉防腐科技有限公司的AI内容运营专家。你精通工业防腐设备行业，熟悉各平台内容规则。你的任务是：深度分析用户需求，结合行业知识，生成精准、专业、高转化的营销内容。使用深度思考分析关键词策略、用户意图、平台规则后再产出最终内容。输出格式必须包含【深度思考】【标题】【文案】三个部分。'},
+        {role: 'user', content: prompt}
+      ],
+      temperature: 0.8,
+      max_tokens: 3000
+    })
+  });
+
+  if (!resp.ok) {
+    var errText = '';
+    try { errText = await resp.text(); } catch(e) {}
+    throw new Error('API Error ' + resp.status + ': ' + (errText || resp.statusText));
+  }
+
+  var data = await resp.json();
+  var content = data.choices[0].message.content || '';
+
+  // 解析返回内容
+  var title = '';
+  var copy = '';
+  var thinking = '';
+  
+  var titleMatch = content.match(/【标题】[\s\n]*([^【]+)/);
+  if (titleMatch) title = titleMatch[1].trim();
+  
+  var copyMatch = content.match(/【文案】[\s\n]*([\s\S]*)$/);
+  if (copyMatch) copy = copyMatch[1].trim();
+  
+  var thinkingMatch = content.match(/【深度思考】[\s\n]*([\s\S]*?)(?=【标题】|$)/);
+  if (thinkingMatch) thinking = thinkingMatch[1].trim();
+  
+  if (!title && !copy) {
+    // 如果解析失败，用原始响应
+    title = content.split('\n')[0] || product + ' - ' + platformInfo.name;
+    copy = content;
+  }
+
+  return {
+    product: product,
+    platform: platform,
+    platformName: platformInfo.name,
+    title: title || (product + ' - ' + companyName),
+    copy: copy || content,
+    keywords: keywords,
+    thinking: thinking || '(DeepSeek 深度思考分析内容已包含在文案中)',
+    _batchId: product + '-' + platform,
+    generatedAt: new Date().toISOString(),
+    fromAPI: true
+  };
+}
 function batchGenerateAll() {
   const resultEl=document.getElementById('genResult');
   resultEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px"><div class="spinner" style="width:32px;height:32px;border-color:#d8e0e8;border-top-color:var(--primary);margin-bottom:16px"></div><p style="color:var(--text2);font-size:14px">批量生成中…</p><p style="color:var(--text2);font-size:12px;margin-top:4px">为全部 ${COMPANY.products.length} 产品 × ${PLATFORMS.length} 平台生成内容</p></div>`;
