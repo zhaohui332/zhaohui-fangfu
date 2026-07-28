@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>江苏兆辉防腐 · 全网智能营销系统</title>
+</head>
+<body>
+
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1a3a5c;--primary-light:#2d6da8;--primary-dark:#0f2740;
+  --accent:#e8a838;--accent-hover:#d4942f;
+  --bg:#f0f3f7;--card:#fff;--text:#1a2a3a;--text2:#6b7a8a;
+  --border:#d8e0e8;--green:#2e8b57;--red:#c0392b;--radius:10px;
+  --shadow:0 2px 12px rgba(0,0,0,.06);--shadow-hover:0 8px 28px rgba(0,0,0,.1);
+  --sidebar-w:240px;--header-h:60px;--transition:.25s ease;
+}
+html{font-size:15px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;
+}
+a{color:var(--primary-light);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#c0c8d0;border-radius:3px}
+
+/* ===== Sidebar ===== */
+.sidebar{
+  width:var(--sidebar-w);background:var(--primary);color:#fff;
+  position:fixed;top:0;left:0;height:100vh;z-index:100;
+  display:flex;flex-direction:column;transition:transform var(--transition);
+}
+.sidebar-header{
+  padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;gap:10px;min-height:var(--header-w);
+}
+.sidebar-header .logo{
+  width:34px;height:34px;background:var(--accent);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;color:var(--primary);flex-shrink:0;
+}
+.sidebar-header h1{font-size:14px;font-weight:600;line-height:1.3}
+.sidebar-header small{font-size:11px;opacity:.65;display:block}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-item{
+  display:flex;align-items:center;gap:12px;padding:12px 20px;
+  cursor:pointer;transition:all var(--transition);color:rgba(255,255,255,.7);
+  border-left:3px solid transparent;font-size:14px;
+}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--accent)}
+.nav-item .icon{font-size:18px;width:24px;text-align:center}
+.nav-item .badge{
+  margin-left:auto;background:var(--accent);color:var(--primary);
+  font-size:11px;padding:1px 8px;border-radius:10px;font-weight:600;
+}
+.sidebar-footer{
+  padding:14px 20px;border-top:1px solid rgba(255,255,255,.1);
+  font-size:11px;opacity:.5;line-height:1.5;
+}
+
+/* ===== Main ===== */
+.main{
+  margin-left:var(--sidebar-w);flex:1;min-height:100vh;
+  display:flex;flex-direction:column;
+}
+.topbar{
+  height:var(--header-h);background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;position:sticky;top:0;z-index:50;
+}
+.topbar h2{font-size:16px;font-weight:600}
+.topbar .breadcrumb{margin-left:12px;font-size:12px;color:var(--text2)}
+.menu-toggle{display:none;background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);margin-right:12px;padding:4px}
+.content{padding:28px;flex:1}
+
+/* ===== Page Sections ===== */
+.page{display:none;animation:fadeIn .35s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== Dashboard ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{
+  background:var(--card);border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+}
+.stat-card .label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700;color:var(--primary)}
+.stat-card .sub{font-size:12px;color:var(--text2);margin-top:4px}
+.stat-card .icon-bg{
+  float:right;width:42px;height:42px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.company-card{
+  background:var(--card);border-radius:var(--radius);padding:24px;
+  box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:24px;
+}
+.company-card h3{font-size:16px;margin-bottom:8px}
+.company-card p{font-size:13px;color:var(--text2);line-height:1.7}
+.company-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+.company-info-item{font-size:13px}
+.company-info-item strong{display:block;color:var(--primary);margin-bottom:2px}
+.company-info-item span{color:var(--text2)}
+
+/* ===== Keywords Page ===== */
+.keyword-categories{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.kw-cat-btn{
+  padding:8px 18px;border-radius:20px;border:1px solid var(--border);
+  background:var(--card);cursor:pointer;font-size:13px;
+  transition:all var(--transition);color:var(--text2);
+}
+.kw-cat-btn:hover{border-color:var(--primary-light);color:var(--primary-light)}
+.kw-cat-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.kw-search{
+  width:100%;padding:10px 16px;border:2px solid var(--border);border-radius:var(--radius);
+  font-size:14px;margin-bottom:16px;transition:border-color var(--transition);
+  outline:none;background:var(--card);
+}
+.kw-search:focus{border-color:var(--primary-light)}
+.kw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.kw-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);
+  padding:8px 14px;border-radius:8px;font-size:13px;transition:all var(--transition);
+}
+.kw-tag:hover{border-color:var(--primary-light);box-shadow:var(--shadow-hover);transform:translateY(-1px)}
+.kw-tag .kw-num{color:var(--text2);font-size:11px;background:var(--bg);padding:0 6px;border-radius:4px}
+.kw-category-header{
+  background:var(--card);border-radius:var(--radius);padding:16px 20px;
+  border:1px solid var(--border);margin-bottom:14px;display:flex;
+  justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.kw-category-header .title{font-weight:600;font-size:14px}
+.kw-category-header .desc{font-size:12px;color:var(--text2)}
+.kw-count{font-size:12px;color:var(--text2)}
+
+/* ===== Content Generator ===== */
+.gen-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.gen-grid{grid-template-columns:1fr}}
+.gen-config{
+  background:var(--card);border-radius:var(--radius);padding:24px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+}
+.gen-config h3{font-size:15px;margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.form-group select,.form-group textarea{
+  width:100%;padding:10px 14px;border:2px solid var(--border);
+  border-radius:8px;font-size:14px;outline:none;transition:border-color var(--transition);
+  background:var(--card);font-family:inherit;
+}
+.form-group select:focus,.form-group textarea:focus{border-color:var(--primary-light)}
+.form-group textarea{min-height:80px;resize:vertical}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 24px;
+  border:none;border-radius:8px;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all var(--transition);
+}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,58,92,.3)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-accent{background:var(--accent);color:var(--primary-dark)}
+.btn-accent:hover{background:var(--accent-hover)}
+.btn-outline{background:transparent;border:2px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--primary-light);color:var(--primary-light)}
+.btn-sm{padding:6px 14px;font-size:12px}
+.gen-result{
+  background:var(--card);border-radius:var(--radius);padding:24px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+  min-height:300px;position:relative;
+}
+.gen-result .empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:250px;color:var(--text2);text-align:center;
+}
+.gen-result .empty-state .icon{font-size:48px;margin-bottom:12px;opacity:.4}
+.gen-result .empty-state p{font-size:14px;max-width:280px;line-height:1.6}
+.result-title{
+  font-size:15px;font-weight:600;margin-bottom:12px;padding:12px 16px;
+  background:var(--bg);border-radius:8px;border-left:4px solid var(--accent);
+}
+.result-section{margin-bottom:16px}
+.result-section h4{
+  font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;
+  margin-bottom:6px;
+}
+.result-section .body{
+  font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;
+  padding:12px;background:var(--bg);border-radius:8px;max-height:300px;overflow-y:auto;
+}
+.result-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.result-meta .tag{
+  font-size:11px;padding:3px 10px;border-radius:12px;background:var(--bg);color:var(--text2);
+}
+
+/* ===== Content Browser ===== */
+.browser-controls{
+  background:var(--card);border-radius:var(--radius);padding:16px 20px;
+  box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:16px;
+  display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+}
+.browser-controls select{padding:8px 14px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:var(--card)}
+.browser-controls select:focus{border-color:var(--primary-light)}
+.browser-controls .result-count{font-size:12px;color:var(--text2);margin-left:auto}
+.content-list{display:grid;gap:16px}
+.content-item{
+  background:var(--card);border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+  cursor:pointer;transition:all var(--transition);
+}
+.content-item:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);border-color:var(--primary-light)}
+.content-item .ci-header{
+  display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;
+}
+.content-item .ci-product{
+  font-weight:600;font-size:14px;color:var(--primary);
+}
+.content-item .ci-platform{
+  font-size:11px;padding:2px 10px;border-radius:10px;background:var(--bg);
+  color:var(--text2);white-space:nowrap;
+}
+.content-item .ci-title{font-size:13px;color:var(--text2);margin-bottom:4px;line-height:1.5}
+.content-item .ci-preview{
+  font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+
+/* ===== Platform Strategy ===== */
+.strat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.strat-card{
+  background:var(--card);border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+}
+.strat-card .sc-icon{font-size:28px;margin-bottom:8px}
+.strat-card h4{font-size:14px;margin-bottom:4px}
+.strat-card .sc-meta{font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6}
+.strat-card .sc-tags{display:flex;flex-wrap:wrap;gap:4px}
+.strat-card .sc-tags span{
+  font-size:11px;padding:2px 8px;border-radius:6px;background:var(--bg);color:var(--text2);
+}
+
+/* ===== Modal ===== */
+.modal-overlay{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.45);z-index:200;justify-content:center;align-items:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--card);border-radius:var(--radius);width:90%;max-width:640px;
+  max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.2);
+  animation:fadeIn .25s ease;
+}
+.modal-close{
+  float:right;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);
+}
+.modal-close:hover{color:var(--text)}
+.modal h3{font-size:16px;margin-bottom:16px}
+.modal .body{font-size:13px;line-height:1.7;white-space:pre-wrap}
+
+/* ===== Loading Spinner ===== */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-dots::after{content:'';animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;bottom:28px;right:28px;background:var(--primary);color:#fff;
+  padding:12px 20px;border-radius:8px;font-size:13px;z-index:300;
+  box-shadow:0 4px 20px rgba(0,0,0,.2);animation:slideIn .3s ease;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.error{background:var(--red)}
+.toast.success{background:var(--green)}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ===== Responsive ===== */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .menu-toggle{display:block}
+  .content{padding:16px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .gen-grid{grid-template-columns:1fr}
+  .topbar{padding:0 16px}
+}
+
+/* ===== Other ===== */
+.copy-btn{float:right;padding:4px 12px;font-size:11px;cursor:pointer;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text2);transition:all var(--transition)}
+.copy-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.empty-state-big{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state-big .icon{font-size:56px;margin-bottom:12px;opacity:.3}
+.empty-state-big p{font-size:15px;line-height:1.6;max-width:400px;margin:0 auto}
+.thinking-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#fef3e2;color:#a0691a;padding:6px 14px;border-radius:20px;
+  font-size:12px;margin-bottom:14px;
+}
+</style>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">兆</div>
+    <div>
+      <h1>江苏兆辉防腐</h1>
+      <small>全网内容营销系统</small>
+    </div>
+  </div>
+  <nav class="sidebar-nav" id="nav">
+    <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span> 工作台</div>
+    <div class="nav-item" data-page="keywords"><span class="icon">🔑</span> 关键词库 <span class="badge">180+</span></div>
+    <div class="nav-item" data-page="generator"><span class="icon">✨</span> 内容生成器</div>
+    <div class="nav-item" data-page="browser"><span class="icon">📄</span> 内容浏览 <span class="badge">80</span></div>
+    <div class="nav-item" data-page="strategy"><span class="icon">🎯</span> 平台策略</div>
+  </nav>
+  <div class="sidebar-footer">
+    江苏兆辉防腐科技有限公司<br>DeepSeek 深度思考驱动
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <h2 id="pageTitle">工作台</h2>
+    <span class="breadcrumb" id="breadcrumb">仪表盘 · 总览</span>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ================================================================
+// 数据层
+// ================================================================
+
+const COMPANY = {
+  name:'江苏兆辉防腐科技有限公司',
+  short:'江苏兆辉防腐',
+  location:'江苏无锡惠山区前洲工业园区鑫园路5号',
+  products:['钢衬塑储罐','钢衬四氟储罐','反应釜','搅拌罐','钢衬塑管道','硫酸储罐','盐酸储罐','钢衬塑塔器','钢衬塑电解槽','不锈钢储罐'],
+  techs:['滚塑（PE/PP/PO）','衬塑（PP/四氟）','喷涂（PFA/PTFE）'],
+  industries:['化工','环保','医药','冶金','电镀','印染'],
+  founded:'2009年',capital:'508万',legal:'张琼',
+  desc:'专业从事防腐设备、环保设备的研发、生产、销售和施工，拥有先进的滚塑设备、衬塑设备、检测设备及钢罐体制作设备。'
+};
+
+const PLATFORMS = [
+  {id:'1688',name:'1688/阿里巴巴',icon:'🏭',titleMax:30,style:'参数化+工厂实力',tip:'关键词前置，突出厂家直销'},
+  {id:'seo',name:'百度SEO',icon:'🔍',titleMax:28,style:'长尾词覆盖',tip:'主词+地域词+品牌词'},
+  {id:'baidu_purchase',name:'百度爱采购',icon:'🛒',titleMax:30,style:'结构化信息',tip:'完整产品+厂家+地域'},
+  {id:'douyin',name:'抖音短视频',icon:'🎬',titleMax:60,style:'场景化+生产过程',tip:'前3秒钩子+热门标签'},
+  {id:'kuaishou',name:'快手',icon:'📱',titleMax:60,style:'接地气+价格透明',tip:'老铁文化+源头工厂'},
+  {id:'wechat',name:'微信公众号',icon:'💬',titleMax:64,style:'专业深度',tip:'技术干货+行业洞察'},
+  {id:'xiaohongshu',name:'小红书',icon:'📕',titleMax:20,style:'真实分享',tip:'口语化+真实体验'},
+  {id:'toutiao',name:'今日头条',icon:'📰',titleMax:30,style:'信息增量',tip:'有观点+引导互动'}
+];
+
+const KEYWORDS = {
+  '核心产品词':['钢衬塑储罐','钢衬四氟储罐','钢衬PE储罐','钢衬PO储罐','防腐储罐','耐腐蚀储罐','耐酸碱储罐','反应釜','钢衬塑反应釜','钢衬四氟反应釜','搅拌罐','钢衬塑搅拌罐','板衬四氟搅拌罐','不锈钢储罐','硫酸储罐','盐酸储罐','钢衬塑塔器','钢衬四氟塔','钢衬塑电解槽','钢衬塑管道','钢衬四氟管道','钢衬塑管件','钢衬塑搅拌器','防腐设备','化工防腐设备','滚塑储罐','PE储罐','PP储罐','非标防腐设备','非标化工设备'],
+  '材质/工艺词':['滚塑','滚塑防腐','滚塑加工','滚塑设备','滚塑PE','滚塑PP','滚塑PO','衬塑','钢衬塑','衬塑设备','衬塑加工','衬塑管道','衬塑储罐','衬PO','衬PE','衬PP','衬四氟','防腐喷涂','PFA喷涂','PTFE喷涂','四氟喷涂','聚乙烯防腐','聚丙烯防腐','聚四氟乙烯防腐','聚烯烃防腐','改性PE储罐','PP防腐储罐','PO储罐','钢衬四氟','钢衬PO','钢衬PP','板衬四氟'],
+  '长尾场景词':['化工厂防腐储罐厂家','化工储罐防腐处理','盐酸储罐生产厂家','硫酸储罐定制','钢衬塑储罐多少钱','钢衬四氟储罐价格','反应釜衬塑防腐价格','化工原料储存罐防腐','腐蚀性液体储罐','耐强酸储罐','耐强碱储罐','化工厂搅拌罐防腐','钢衬塑管道耐腐蚀','非标防腐设备定制','钢衬塑设备加工','不锈钢衬塑储罐定制','大型防腐储罐厂家','钢衬塑储罐与不锈钢储罐区别','钢衬四氟储罐耐温多少度','PE储罐和PP储罐区别','滚塑储罐和衬塑储罐区别'],
+  '区域词':['江苏防腐设备厂家','无锡防腐设备','无锡防腐储罐','江苏钢衬塑储罐','无锡钢衬塑储罐','江苏防腐储罐厂家','无锡化工设备厂家','无锡钢衬四氟厂家','江苏衬塑储罐','无锡衬塑储罐','前洲防腐设备','江苏化工防腐设备','长三角防腐设备厂','华东地区防腐储罐','苏州防腐设备','常州防腐设备','南京防腐设备','南通防腐设备','镇江防腐储罐','扬州防腐设备','泰州防腐设备'],
+  '竞品关联词':['防腐储罐哪家好','钢衬塑储罐厂家排名','无锡防腐设备公司','江苏防腐储罐推荐','衬塑储罐十大品牌','防腐设备厂家直销','钢衬塑反应釜生产商','化工防腐设备品牌','大型防腐设备厂','非标化工设备定制厂'],
+  '应用场景词':['化工厂','化工储罐','化工原料储罐','盐酸储存','硫酸储存','液碱储存','氢氟酸储存','化工管道防腐','化工塔器','环保设备','废水处理储罐','废气处理塔','脱硫脱硝设备','废水储罐','电解槽防腐','电镀槽','电解槽','医药储罐','食品级储罐','不锈钢储罐','矿山防腐设备','冶金储罐','印染厂储罐','电化厂储罐','农药厂储罐','化肥厂储罐'],
+  '购买意图词':['防腐储罐报价','储罐价格','钢衬塑储罐采购','防腐设备招标','钢衬四氟储罐供应商','防腐储罐批发','厂家直销防腐储罐','钢衬塑储罐生产厂家','反应釜报价','搅拌罐价格','化工储罐供应商'],
+  '平台专用词(B2B)':['钢衬塑储罐 厂家直销','防腐储罐 批发','钢衬四氟储罐 供应商','反应釜 生产厂家','化工储罐 定制','衬塑管道 加工','防腐设备 价格报价','滚塑储罐 定做','钢衬塑设备 来图定制'],
+  '平台专用词(SEO)':['防腐设备厂家直销有哪些','钢衬塑储罐什么牌子好','无锡防腐设备公司地址','钢衬四氟储罐使用寿命','化工储罐防腐方案','钢衬塑储罐质量标准','防腐储罐技术参数','非标防腐设备工艺流程'],
+  '平台专用词(短视频)':['防腐储罐是怎么做的','钢衬塑储罐工厂实拍','化工厂用什么储罐','防腐设备车间','钢衬四氟储罐制作过程','滚塑储罐制作全流程','#化工厂 #防腐储罐 #钢衬塑'],
+  '平台专用词(微信)':['腐蚀性介质储罐方案','化工企业储罐选型指南','钢衬塑储罐优势','防腐设备最新技术','化工厂安全生产储罐']
+};
+
+// ================================================================
+// 内容生成引擎
+// ================================================================
+
+function generateContent(product, platform) {
+  const p = PLATFORMS.find(x=>x.id===platform) || PLATFORMS[0];
+  const kwList = collectKeywords(product);
+  
+  // 深度思考（模拟 DeepSeek reasoner 风格的分析）
+  const thinking = analyzeIntent(product, platform, p, kwList);
+  
+  // 标题生成
+  const title = generateTitle(product, platform, p);
+  
+  // 文案生成
+  const copy = generateCopy(product, platform, p);
+  
+  return {product,platform:platform,platformName:p.name,title,copy,keywords:kwList,thinking};
+}
+
+function collectKeywords(product) {
+  const all=[];
+  for(const kw of Object.values(KEYWORDS)){
+    const matched=kw.filter(w=>product?w.includes(product.replace(/[号型]/g,'').trim())||product.includes(w.replace(/[号型]/g,'').trim()):true);
+    all.push(...matched.slice(0,4));
+  }
+  return [...new Set(all)].slice(0,15);
+}
+
+function analyzeIntent(product, platform, p, keywords) {
+  const intentMap = {
+    '1688':'明确采购意向 → 搜索产品名+厂家 → 对比价格和资质',
+    'seo':'信息收集 → 搜索产品+选型/区别/标准 → 阅读对比文章',
+    'baidu_purchase':'直接采购 → 搜索产品+厂家+报价 → 直接询盘',
+    'douyin':'被动发现 → 刷到生产场景/工艺揭秘 → 产生兴趣→咨询',
+    'kuaishou':'被动发现 → 想看源头工厂 → 价格透明→直接联系',
+    'wechat':'主动学习 → 关注行业干货 → 建立信任→合作',
+    'xiaohongshu':'主动搜索经验 → 看真实使用感受 → 种草→询价',
+    'toutiao':'浏览资讯 → 看到行业内容 → 点进去→关注'
+  };
+  return `【深度思考：${product} × ${p.name}】
+
+🎯 用户意图分析：
+用户搜索"${product}"时，场景为${intentMap[platform]||'主动搜索产品信息'}
+
+🏆 内容策略：
+1. 标题策略：${p.titleMax}字以内，核心词「${keywords[0]||product}」前置
+2. 内容定位：${p.style}
+3. 差异化卖点：源头厂家（江苏无锡）+ ${COMPANY.techs.join('、')}工艺
+
+📊 关键词布局：
+- 主词：${keywords.slice(0,3).join('、')}
+- 长尾词：${keywords.slice(3,6).join('、')}
+- 辅助词：${keywords.slice(6,9).join('、')}
+
+⚡ 平台规则提醒：${p.tip}
+`;
+}
+
+function generateTitle(product, platform, p) {
+  const titles = {
+    '1688':[
+      `${product} 厂家直销 江苏兆辉防腐 耐酸碱化工储罐`,
+      `源头厂家 ${product} 生产批发 钢衬塑防腐 品质保证`,
+      `${product} 化工防腐设备 厂家批发价 无锡`,
+      `定制${product} 防腐设备生产厂 非标来图加工`
+    ],
+    'seo':[
+      `${product}生产厂家 - 江苏兆辉防腐科技 - 专业防腐设备`,
+      `无锡${product}定制 钢衬塑加工 耐腐蚀化工设备`,
+      `${product}|无锡防腐设备厂 化工储罐钢衬塑 源头厂家`
+    ],
+    'baidu_purchase':[
+      `${product} 厂家 江苏兆辉防腐科技 无锡 价格报价`,
+      `无锡${product}生产厂家 钢衬塑储罐 防腐化工设备`
+    ],
+    'douyin':[
+      `#防腐储罐 #化工厂 ${product}是怎么做出来的？车间实拍！`,
+      `一个${product}能用20年！揭秘钢衬塑防腐工艺全过程🔥`,
+      `化工厂采购必看！${product}到底怎么选？老厂长教你避坑👷`
+    ],
+    'kuaishou':[
+      `老铁们看过来！咱家做的${product}，耐腐蚀用20年没问题！`,
+      `工厂实拍${product}制作全过程，化工老板都在找的防腐设备！`,
+      `${product}源头工厂，没有中间商差价，想要啥规格都能做！`
+    ],
+    'wechat':[
+      `技术解析 | ${product}在化工行业的应用与选型指南`,
+      `耐腐蚀${product}如何选？一篇讲透钢衬塑与钢衬四氟的区别`,
+      `江苏兆辉防腐 · ${product}解决方案 助力化工企业安全生产`
+    ],
+    'xiaohongshu':[
+      `化工人的福音✨这个${product}耐腐蚀性真的绝了！`,
+      `🔥如何挑选靠谱的${product}？这份指南建议收藏`
+    ],
+    'toutiao':[
+      `化工厂注意！${product}选不对，安全隐患有多大？`,
+      `深度解析：${product}价格差异为何巨大？真相在这里`
+    ]
+  };
+  const t = titles[platform] || [`${product} - 江苏兆辉防腐科技 - 无锡`];
+  return t[Math.floor(Math.random() * t.length)];
+}
+
+function generateCopy(product, platform, p) {
+  const c = {
+    '1688':`江苏兆辉防腐科技有限公司专注防腐设备领域多年，主营${product}、钢衬塑储罐、钢衬四氟储罐等产品。
+
+【核心优势】
+• 源头厂家直销，无中间商差价
+• 钢衬塑工艺成熟（滚塑/衬塑/喷涂）
+• 耐腐蚀、耐高温、耐压，使用寿命长
+• 可按需定制，来图来样均可
+
+【技术规格】
+• 材质选择：钢衬PE/PO/PP/四氟
+• 适用介质：盐酸、硫酸、液碱、氢氟酸等腐蚀性介质
+• 工作温度：-20℃ ~ 120℃（视材质而定）
+• 规格范围：根据需求定制（0.5m³~100m³+）
+
+【应用领域】
+化工、环保、医药、冶金、电子、印染等行业
+
+📞 欢迎咨询：点击在线沟通或留言获取报价`,
+
+    'douyin':`【🎬 拍摄脚本 - 15秒】
+【00:00-00:03】镜头推向车间，工人操作设备
+旁白："这就是钢衬塑${product}的生产现场"
+【00:03-00:08】特写：内壁光滑的防腐层
+旁白："PE/PO/四氟衬里，耐强酸强碱"
+【00:08-00:12】全景展示成品
+旁白："从1吨到100吨，按需定制"
+【00:12-00:15】公司铭牌+联系方式
+旁白："江苏兆辉防腐，源头厂家就在无锡"
+
+🏷️ 推荐话题：#防腐储罐 #化工厂 #钢衬塑 #化工设备 #无锡制造`,
+
+    'wechat':`【行业干货】${product}如何选型？这3点决定设备寿命
+
+在化工生产中，${product}的选型直接关系到设备使用寿命和安全生产。
+
+📌 一、材料怎么选？
+• 钢衬PE（聚乙烯）：适合常温酸碱储存，性价比高
+• 钢衬PO（聚烯烃）：耐温性更好，80-100℃工况首选
+• 钢衬四氟/F4：耐高温（可达180℃）、耐强氧化性介质
+
+📌 二、工艺怎么选？
+• 滚塑工艺：中小型储罐，整体无缝，防腐层均匀
+• 衬塑工艺：大型设备，可现场施工
+• 喷涂工艺：复杂结构件，PFA高洁净度
+
+📌 三、厂家怎么选？
+选择江苏兆辉防腐这样的源头厂家：
+→ 更优价格（无中间环节）
+→ 更准工艺匹配（技术团队免费出方案）
+→ 更快交期（自有设备、自主生产）
+
+💬 如需技术方案或报价，欢迎后台留言`,
+
+    'seo':`# ${product}生产厂家 | 江苏兆辉防腐科技 | 无锡
+
+## 专业防腐设备制造商
+
+江苏兆辉防腐科技有限公司位于江苏无锡，集研发、生产、销售、安装于一体，专注为化工、环保、医药等行业提供耐腐蚀设备解决方案。
+
+## 主营产品
+- ${product}
+- 钢衬塑储罐（PE/PO/PP）
+- 钢衬四氟储罐
+- 反应釜、搅拌罐
+- 钢衬塑塔器/电解槽
+- 钢衬塑管道/管件
+
+## 技术工艺
+滚塑 | 衬塑 | 喷涂
+
+## 联系方式
+地址：无锡惠山区前洲工业园鑫园路5号
+欢迎来电咨询或实地考察！`,
+
+    'default':`${product} - 江苏兆辉防腐科技有限公司\n\n无锡专业防腐设备制造商\n专注钢衬塑/钢衬四氟/滚塑防腐设备\n欢迎咨询定制方案`
+  };
+  return c[platform] || c['default'];
+}
+
+// ================================================================
+// 渲染引擎
+// ================================================================
+
+const pages = ['dashboard','keywords','generator','browser','strategy'];
+let currentPage = 'dashboard';
+let generatedCache = [];
+let contentData = {};
+
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  
+  const titles={'dashboard':['工作台','仪表盘 · 总览'],'keywords':['关键词库','研究与分析'],'generator':['内容生成器','AI 深度思考驱动'],'browser':['内容浏览','查看全部生成内容'],'strategy':['平台策略','运营指南']};
+  const [t,b]=titles[page]||['',''];
+  document.getElementById('pageTitle').textContent=t;
+  document.getElementById('breadcrumb').textContent=b;
+  
+  const el=document.getElementById('page-'+page);
+  if(el){el.classList.add('active')}
+  else {renderPage(page)}
+  
+  if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
+}
+
+function renderPage(page) {
+  const container=document.getElementById('content');
+  const pageEl=document.createElement('div');
+  pageEl.className='page active';
+  pageEl.id='page-'+page;
+  container.innerHTML='';
+  container.appendChild(pageEl);
+  
+  const renderers={dashboard:renderDashboard,keywords:renderKeywords,generator:renderGenerator,browser:renderBrowser,strategy:renderStrategy};
+  if(renderers[page])renderers[page](pageEl);
+  else pageEl.innerHTML='<div class="empty-state-big"><div class="icon">📄</div><p>页面加载中…</p></div>';
+}
+
+// ---- Dashboard ----
+function renderDashboard(el) {
+  // Stats
+  const totalKw=Object.values(KEYWORDS).reduce((s,a)=>s+a.length,0);
+  el.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="icon-bg" style="background:#e8f0fe">🔑</div><div class="label">关键词总量</div><div class="value">${totalKw}</div><div class="sub">8 大分类覆盖全场景</div></div>
+      <div class="stat-card"><div class="icon-bg" style="background:#e6f7ed">📄</div><div class="label">已生成内容</div><div class="value">80</div><div class="sub">10 产品 × 8 平台</div></div>
+      <div class="stat-card"><div class="icon-bg" style="background:#fef3e2">🎯</div><div class="label">覆盖平台</div><div class="value">${PLATFORMS.length}</div><div class="sub">B2B/搜索/短视频/社交</div></div>
+      <div class="stat-card"><div class="icon-bg" style="background:#fce8e6">🏭</div><div class="label">核心产品</div><div class="value">${COMPANY.products.length}</div><div class="sub">钢衬塑/四氟/滚塑工艺</div></div>
+    </div>
+    <div class="company-card">
+      <h3>🏢 ${COMPANY.name}</h3>
+      <p>${COMPANY.desc}</p>
+      <div class="company-info-grid">
+        <div class="company-info-item"><strong>📍 地址</strong><span>${COMPANY.location}</span></div>
+        <div class="company-info-item"><strong>📅 成立</strong><span>${COMPANY.founded}</span></div>
+        <div class="company-info-item"><strong>💰 注册资本</strong><span>${COMPANY.capital}</span></div>
+        <div class="company-info-item"><strong>👤 法人</strong><span>${COMPANY.legal}</span></div>
+        <div class="company-info-item"><strong>🔧 核心工艺</strong><span>${COMPANY.techs.join('、')}</span></div>
+        <div class="company-info-item"><strong>🏗️ 应用行业</strong><span>${COMPANY.industries.join('、')}</span></div>
+      </div>
+    </div>
+    <div class="company-card">
+      <h3>🚀 快速操作</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn btn-primary" onclick="switchPage('generator')">✨ 生成新内容</button>
+        <button class="btn btn-accent" onclick="switchPage('keywords')">🔑 浏览关键词</button>
+        <button class="btn btn-outline" onclick="switchPage('browser')">📄 查看已生成内容</button>
+      </div>
+    </div>
+  `;
+}
+
+// ---- Keywords ----
+function renderKeywords(el) {
+  const catKeys=Object.keys(KEYWORDS);
+  const cats={'核心产品词':'精准搜索 · 高竞争','材质/工艺词':'技术搜索 · 中竞争','长尾场景词':'长尾转化 · 低竞争','区域词':'本地搜索 · 中低','竞品关联词':'竞品截流 · 高竞争','应用场景词':'场景搜索 · 中竞争','购买意图词':'购买决策 · 高竞争','平台专用词(B2B)':'B2B平台优化','平台专用词(SEO)':'搜索引擎优化','平台专用词(短视频)':'短视频引流','平台专用词(微信)':'微信生态'};
+  
+  let html=`<div class="keyword-categories" id="kwCats">`;
+  catKeys.forEach((k,i)=>{
+    html+=`<button class="kw-cat-btn ${i===0?'active':''}" onclick="filterKeywords('${k}',this)">${k} <span style="font-weight:400;opacity:.7">(${KEYWORDS[k].length})</span></button>`;
+  });
+  html+=`</div><input class="kw-search" id="kwSearch" placeholder="🔍 搜索关键词..." oninput="searchKeywords(this.value)">`;
+  html+=`<div id="kwResults"></div>`;
+  el.innerHTML=html;
+  filterKeywords(catKeys[0],document.querySelector('.kw-cat-btn'));
+}
+
+function filterKeywords(cat,btn) {
+  document.querySelectorAll('.kw-cat-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const words=KEYWORDS[cat]||[];
+  renderKeywordGrid(words,cat);
+}
+function searchKeywords(q) {
+  if(!q){const btn=document.querySelector('.kw-cat-btn.active');if(btn)filterKeywords(btn.textContent.split('(')[0].trim(),btn);return}
+  const all=[];
+  for(const [cat,words] of Object.entries(KEYWORDS))all.push(...words);
+  const filtered=all.filter(w=>w.includes(q));
+  renderKeywordGrid(filtered,'搜索：'+q);
+}
+function renderKeywordGrid(words,label) {
+  const el=document.getElementById('kwResults');
+  if(!el)return;
+  el.innerHTML=`<div class="kw-category-header"><div><div class="title">${label}</div><div class="desc">共 ${words.length} 个关键词</div></div><span class="kw-count">点击复制</span></div><div class="kw-grid">${words.map((w,i)=>`<span class="kw-tag" onclick="copyText('${w}')"><span class="kw-num">${i+1}</span>${w}</span>`).join('')}</div>`;
+}
+
+// ---- Generator ----
+function renderGenerator(el) {
+  el.innerHTML=`
+    <div class="gen-grid">
+      <div class="gen-config">
+        <h3>⚙️ 内容配置</h3>
+        <div class="form-group">
+          <label>选择产品</label>
+          <select id="genProduct">${COMPANY.products.map(p=>`<option value="${p}">${p}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label>选择平台</label>
+          <select id="genPlatform">${PLATFORMS.map(p=>`<option value="${p.id}">${p.icon} ${p.name}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label>附加指令（可选）</label>
+          <textarea id="genExtra" placeholder="示例：突出价格优势，强调现货供应…"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="doGenerate()"><span id="genBtnIcon">✨</span> <span id="genBtnText">AI 深度生成</span></button>
+          <button class="btn btn-outline" onclick="doGenerate();this.innerHTML='已加入批量'">📋 加入批量</button>
+          <button class="btn btn-accent" onclick="batchGenerateAll()">⚡ 一键生成全部</button>
+        </div>
+      </div>
+      <div class="gen-result" id="genResult">
+        <div class="empty-state">
+          <div class="icon">🤖</div>
+          <p>选择产品和平台后点击「AI 深度生成」<br>系统将模拟 DeepSeek 深度思考流程<br>分析用户意图 → 制定内容策略 → 输出标题和文案</p>
+          <p style="margin-top:12px;font-size:12px;opacity:.7">配置 DeepSeek API Key 后可接入真实深度思考模型</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function doGenerate() {
+  const product=document.getElementById('genProduct')?.value || COMPANY.products[0];
+  const platform=document.getElementById('genPlatform')?.value || '1688';
+  const extra=document.getElementById('genExtra')?.value || '';
+  
+  const resultEl=document.getElementById('genResult');
+  resultEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px"><div class="spinner" style="width:32px;height:32px;border-color:#d8e0e8;border-top-color:var(--primary);margin-bottom:16px"></div><p style="color:var(--text2);font-size:14px">DeepSeek 深度思考中<span class="loading-dots"></span></p><p style="color:var(--text2);font-size:12px;margin-top:4px">分析用户意图 · 制定内容策略 · 生成营销文案</p></div>`;
+  
+  setTimeout(()=>{
+    const result=generateContent(product,platform);
+    if(extra)result.copy+='\n\n【附加指令】'+extra;
+    generatedCache.push(result);
+    displayResult(result,resultEl);
+  },800);
+}
+
+function displayResult(result,el) {
+  const platformInfo=PLATFORMS.find(p=>p.id===result.platform)||{icon:'📄',name:result.platformName};
+  el.innerHTML=`
+    <div class="thinking-badge">🧠 DeepSeek 深度思考 · ${result.platformName}</div>
+    <div class="result-meta">
+      <span class="tag">📦 ${result.product}</span>
+      <span class="tag">${platformInfo.icon} ${result.platformName}</span>
+      <span class="tag">🔑 ${result.keywords.length} 个关联词</span>
+    </div>
+    <div class="result-section">
+      <h4>🎯 深度思考分析</h4>
+      <div class="body" style="max-height:180px;background:#fefcf5;font-size:12px">${result.thinking.replace(/\n/g,'<br>')}</div>
+    </div>
+    <div class="result-title">${result.title}</div>
+    <div class="result-section">
+      <h4>📝 完整文案</h4>
+      <div class="body">${result.copy}</div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="copyText(\`${result.title}\n\n${result.copy.replace(/`/g,'\\`')}\`)">📋 复制全部</button>
+      <button class="btn btn-outline btn-sm" onclick="copyText('${result.title}')">📋 复制标题</button>
+    </div>
+  `;
+}
+
+function batchGenerateAll() {
+  const resultEl=document.getElementById('genResult');
+  resultEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px"><div class="spinner" style="width:32px;height:32px;border-color:#d8e0e8;border-top-color:var(--primary);margin-bottom:16px"></div><p style="color:var(--text2);font-size:14px">批量生成中…</p><p style="color:var(--text2);font-size:12px;margin-top:4px">为全部 ${COMPANY.products.length} 产品 × ${PLATFORMS.length} 平台生成内容</p></div>`;
+  
+  setTimeout(()=>{
+    const all=[];
+    for(const p of COMPANY.products){
+      for(const pl of PLATFORMS){
+        const r=generateContent(p,pl.id);
+        r._batchId=`${p}-${pl.id}`;
+        all.push(r);
+      }
+    }
+    generatedCache=all;
+    resultEl.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--green)">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <p style="font-size:16px;font-weight:600">批量生成完成！</p>
+      <p style="color:var(--text2);margin-top:4px">共 ${all.length} 条内容（${COMPANY.products.length}产品 × ${PLATFORMS.length}平台）</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="switchPage('browser')">📄 查看全部内容</button>
+    </div>`;
+  },1200);
+}
+
+// ---- Browser ----
+function renderBrowser(el) {
+  if(generatedCache.length===0){
+    // 预置数据
+    for(const p of COMPANY.products.slice(0,5)){
+      for(const pl of PLATFORMS.slice(0,4)){
+        const r=generateContent(p,pl.id);
+        r._batchId=`${p}-${pl.id}`;
+        generatedCache.push(r);
+      }
+    }
+  }
+  
+  el.innerHTML=`
+    <div class="browser-controls">
+      <select id="bFilterProduct" onchange="filterBrowser()"><option value="">全部产品</option>${COMPANY.products.map(p=>`<option value="${p}">${p}</option>`).join('')}</select>
+      <select id="bFilterPlatform" onchange="filterBrowser()"><option value="">全部平台</option>${PLATFORMS.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+      <input style="flex:1;min-width:120px;padding:8px 14px;border:2px solid var(--border);border-radius:8px;font-size:13px;outline:none" placeholder="🔍 搜索内容..." id="bFilterSearch" oninput="filterBrowser()">
+      <span class="result-count" id="bResultCount">${generatedCache.length} 条</span>
+    </div>
+    <div class="content-list" id="bList"></div>
+  `;
+  filterBrowser();
+}
+
+function filterBrowser() {
+  const product=document.getElementById('bFilterProduct')?.value||'';
+  const platform=document.getElementById('bFilterPlatform')?.value||'';
+  const search=document.getElementById('bFilterSearch')?.value||'';
+  
+  let filtered=generatedCache.filter(r=>{
+    if(product && r.product!==product)return false;
+    if(platform && r.platform!==platform)return false;
+    if(search && !r.title.includes(search) && !r.product.includes(search) && !(r.copy||'').includes(search))return false;
+    return true;
+  });
+  
+  const countEl=document.getElementById('bResultCount');
+  if(countEl)countEl.textContent=filtered.length+' 条';
+  
+  const list=document.getElementById('bList');
+  if(!list)return;
+  
+  if(filtered.length===0){
+    list.innerHTML='<div class="empty-state-big"><div class="icon">🔍</div><p>没有匹配的内容<br>试试调整筛选条件</p></div>';
+    return;
+  }
+  
+  const platformMap=Object.fromEntries(PLATFORMS.map(p=>[p.id,p]));
+  list.innerHTML=filtered.map(r=>{
+    const pi=platformMap[r.platform]||{icon:'📄',name:r.platformName||r.platform};
+    return `<div class="content-item" onclick="showContentDetail('${r._batchId||r.product+'-'+r.platform}')">
+      <div class="ci-header">
+        <div class="ci-product">📦 ${r.product}</div>
+        <div class="ci-platform">${pi.icon} ${pi.name||r.platformName||r.platform}</div>
+      </div>
+      <div class="ci-title">${r.title}</div>
+      <div class="ci-preview">${(r.copy||'').substring(0,120)}…</div>
+    </div>`;
+  }).join('');
+}
+
+function showContentDetail(id) {
+  const item=generatedCache.find(r=>r._batchId===id);
+  if(!item)return;
+  const pi=PLATFORMS.find(p=>p.id===item.platform)||{icon:'📄',name:item.platformName};
+  document.getElementById('modalContent').innerHTML=`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>${pi.icon} ${item.product} · ${pi.name}</h3>
+    <div class="result-meta">
+      <span class="tag">📦 ${item.product}</span>
+      <span class="tag">🔑 ${item.keywords.length} 个关联词</span>
+    </div>
+    <div class="thinking-badge" style="margin-top:12px">🧠 深度思考分析</div>
+    <div class="body" style="font-size:12px;background:#fefcf5;margin-bottom:16px">${item.thinking.replace(/\n/g,'<br>')}</div>
+    <div class="result-title">${item.title}</div>
+    <div class="body" style="margin-top:12px">${item.copy}</div>
+    <div style="margin-top:16px">
+      <button class="btn btn-primary btn-sm" onclick="copyText(\`${item.title}\n\n${item.copy.replace(/`/g,'\\`')}\`)">📋 复制全部</button>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+// ---- Strategy ----
+function renderStrategy(el) {
+  const platformStyles={
+    '1688':'参数化<br>工厂实力<br>资质展示',
+    'seo':'长尾词覆盖<br>自然排名<br>内链建设',
+    'baidu_purchase':'结构化信息<br>资质认证<br>完整填写',
+    'douyin':'前3秒钩子<br>场景化展示<br>热门标签',
+    'kuaishou':'接地气表达<br>源头实拍<br>价格透明',
+    'wechat':'专业深度<br>技术干货<br>行业洞察',
+    'xiaohongshu':'真实分享<br>口语化<br>种草风格',
+    'toutiao':'信息增量<br>有观点<br>引导互动'
+  };
+  const freqs={'1688':'每周优化','seo':'每周2-3篇','baidu_purchase':'每月更新','douyin':'每周3-5条','kuaishou':'每周3-5条','wechat':'每周1-2篇','xiaohongshu':'每周2-3篇','toutiao':'每周2-3篇'};
+  
+  el.innerHTML=`
+    <div style="margin-bottom:20px">
+      <h3 style="font-size:15px;margin-bottom:8px">🎯 平台矩阵策略</h3>
+      <p style="font-size:13px;color:var(--text2)">针对每个平台的内容规则、用户习惯和推荐算法定制策略</p>
+    </div>
+    <div class="strat-grid">
+      ${PLATFORMS.map(p=>`
+        <div class="strat-card">
+          <div class="sc-icon">${p.icon}</div>
+          <h4>${p.name}</h4>
+          <div class="sc-meta">
+            标题限制: ${p.titleMax}字 · 更新: ${freqs[p.id]||'按需'}<br>
+            风格: ${p.style}
+          </div>
+          <div class="sc-tags">
+            ${(platformStyles[p.id]||'').split('<br>').map(s=>`<span>${s}</span>`).join('')}
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text2);background:var(--bg);padding:8px 12px;border-radius:6px">
+            💡 ${p.tip}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="company-card" style="margin-top:20px">
+      <h3>📅 内容日历建议</h3>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="background:var(--bg)"><th style="padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)">周次</th><th style="padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)">周一</th><th style="padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)">周三</th><th style="padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)">周五</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600">第1周</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">抖音：储罐生产过程</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">公众号：选型指南</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">朋友圈：客户案例</td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600">第2周</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">抖音：工艺揭秘</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">小红书：采购指南</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">1688 主图优化</td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600">第3周</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">抖音：发货实拍</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">SEO 文章更新</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">朋友圈：车间日常</td></tr>
+            <tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600">第4周</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">抖音：知识科普</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">公众号：行业洞察</td><td style="padding:10px 14px;border-bottom:1px solid var(--border)">爱采购信息维护</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ================================================================
+// 工具函数
+// ================================================================
+
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open')}
+
+function copyText(text){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>showToast('已复制到剪贴板','success')).catch(()=>fallbackCopy(text));
+  }else{fallbackCopy(text)}
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('已复制到剪贴板','success')}catch(e){showToast('复制失败，请手动复制','error')}
+  document.body.removeChild(ta);
+}
+
+let toastTimer;
+function showToast(msg,type='success'){
+  if(toastTimer)clearTimeout(toastTimer);
+  const existing=document.querySelector('.toast');if(existing)existing.remove();
+  const t=document.createElement('div');t.className='toast '+type;
+  t.innerHTML=`<span>${type==='success'?'✅':'❌'}</span>${msg}`;
+  document.body.appendChild(t);
+  toastTimer=setTimeout(()=>t.remove(),2500);
+}
+
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open')}
+
+// ================================================================
+// 初始化
+// ================================================================
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click',()=>switchPage(el.dataset.page));
+  });
+  switchPage('dashboard');
+});
+
+// 点击遮罩关闭侧栏
+document.getElementById('content')?.addEventListener('click',()=>{
+  if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
+});
+</script>
+
+</body>
+</html>
