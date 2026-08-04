@@ -1554,6 +1554,112 @@ textarea:focus-visible {
   display: none;
 }
 
+.live-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.live-keywords {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 0 16px 14px;
+}
+
+.live-keyword-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.toggle-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toggle-line input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
+}
+
+.live-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+.news-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.news-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.news-card-top a {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.news-card-top a:hover {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+.news-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.news-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ai-summary {
+  margin: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.ai-summary pre {
+  margin: 0;
+  padding: 14px;
+  white-space: pre-wrap;
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
 @media (max-width: 1200px) {
   .platform-card-grid {
     grid-template-columns: 1fr;
@@ -1561,6 +1667,10 @@ textarea:focus-visible {
 
   .asset-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-results {
+    grid-template-columns: 1fr;
   }
 
   .kpi-grid {
@@ -1667,6 +1777,10 @@ textarea:focus-visible {
   .lead-form,
   .asset-form {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .live-keywords {
+    grid-template-columns: 1fr;
   }
 
   .week-grid {
