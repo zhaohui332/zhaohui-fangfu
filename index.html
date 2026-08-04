@@ -40,6 +40,9 @@
         <button class="nav-item" data-view="data" type="button">
           <i data-lucide="chart-no-axes-combined"></i><span>数据复盘</span>
         </button>
+        <button class="nav-item" data-view="live" type="button">
+          <i data-lucide="radio"></i><span>实时情报</span>
+        </button>
       </nav>
       <div class="sidebar-foot">
         <button class="nav-item ghost" data-view="settings" type="button" id="open-settings">
@@ -74,6 +77,7 @@
         <section class="view" id="view-leads" data-view="leads" hidden></section>
         <section class="view" id="view-assets" data-view="assets" hidden></section>
         <section class="view" id="view-data" data-view="data" hidden></section>
+        <section class="view" id="view-live" data-view="live" hidden></section>
       </div>
     </main>
   </div>
@@ -106,6 +110,18 @@
         <label class="field">
           <span>官网 / 落地页</span>
           <input type="text" name="website" placeholder="https://example.com">
+        </label>
+        <label class="field">
+          <span>DeepSeek API Key</span>
+          <input type="password" name="deepseekApiKey" placeholder="sk-...">
+        </label>
+        <label class="field">
+          <span>DeepSeek API 地址</span>
+          <input type="text" name="deepseekBaseUrl" placeholder="https://api.deepseek.com">
+        </label>
+        <label class="field">
+          <span>DeepSeek 模型</span>
+          <input type="text" name="deepseekModel" placeholder="deepseek-chat">
         </label>
         <div class="modal-actions">
           <button class="btn btn-danger" type="button" data-action="reset-demo">重置示例数据</button>
