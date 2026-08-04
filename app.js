@@ -194,7 +194,10 @@ const DEFAULT_SETTINGS = {
   products: '钢衬四氟设备、钢衬PE/PO储罐、反应釜、塔器、管道、板衬四氟工艺',
   phone: '请填写联系电话',
   wechat: 'zhaohui-fangfu',
-  website: ''
+  website: '',
+  deepseekApiKey: '',
+  deepseekBaseUrl: 'https://api.deepseek.com',
+  deepseekModel: 'deepseek-chat'
 };
 
 const SCENARIO_MAP = {
@@ -251,7 +254,8 @@ const VIEW_META = {
   schedule: ['排期作战台', '周排期、每日任务和发布节奏'],
   leads: ['线索池', '全平台线索集中跟进与私域承接'],
   assets: ['素材软件库', '把已有软件和素材接入获客链路'],
-  data: ['数据复盘', '每周按平台记录流量、线索和成交']
+  data: ['数据复盘', '每周按平台记录流量、线索和成交'],
+  live: ['实时情报', '全网招标、采购与行业动态实时监测']
 };
 
 const STAGE_LABELS = { new: '新增', contacted: '已联系', quote: '报价中', won: '已成交', lost: '已流失' };
@@ -327,6 +331,13 @@ function loadState() {
     leads: [],
     assets: [],
     metrics: {},
+    live: {
+      keywords: ['钢衬四氟 招标', '钢衬PE储罐 采购', '钢衬PO储罐 招标', '板衬四氟 项目', '衬氟管道 采购'],
+      autoRefresh: true,
+      results: [],
+      summary: '',
+      lastUpdate: null
+    },
     contentFilter: 'all',
     gen: { scenario: '钢衬四氟储罐/反应釜', audience: '工厂老板', format: '短视频口播' },
     generated: null,
@@ -484,6 +495,7 @@ function renderActiveView() {
   if (view === 'leads') renderLeads();
   if (view === 'assets') renderAssets();
   if (view === 'data') renderData();
+  if (view === 'live') renderLive();
   refreshIcons();
 }
 
@@ -728,6 +740,7 @@ function renderContent() {
             <h3>生成结果</h3>
             <p style="color:var(--muted);font-size:12px;margin:2px 0 0">${output.meta}</p>
           </div>
+          <button class="btn btn-primary btn-small" type="button" data-action="ai-generate">DeepSeek 生成</button>
           <button class="btn btn-ghost btn-small" type="button" data-action="copy-all">一键复制</button>
         </div>
         <div class="output-body">
@@ -1105,6 +1118,298 @@ function renderData() {
     </form>`;
 }
 
+function stripHtml(html) {
+  return String(html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseRSS(text) {
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
+  const items = Array.from(doc.querySelectorAll('item')).slice(0, 20);
+  return items.map((item) => {
+    const title = item.querySelector('title')?.textContent || '';
+    const link = item.querySelector('link')?.textContent || '';
+    const desc = item.querySelector('description')?.textContent || '';
+    const pubDate = item.querySelector('pubDate')?.textContent || '';
+    return { title, link, desc: stripHtml(desc).slice(0, 220), pubDate };
+  }).filter((i) => i.title && i.link);
+}
+
+function markRelevant(item) {
+  const text = `${item.title} ${item.desc || ''}`;
+  item.relevant = /钢衬|四氟|衬氟|PE|PO|储罐|反应釜|塔器|管道|板衬|招标|采购|项目/.test(text);
+  return item;
+}
+
+async function fetchNews(keywords) {
+  const q = keywords.join(' OR ');
+  const direct = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`;
+  const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`;
+  const urls = [
+    `/api/news?q=${encodeURIComponent(q)}`,
+    direct,
+    proxied
+  ];
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: 'application/rss+xml, application/json, text/xml, */*' }
+      });
+      clearTimeout(timer);
+      if (!res.ok) continue;
+      const text = await res.text();
+      let items;
+      try {
+        items = JSON.parse(text);
+        if (items && !Array.isArray(items) && Array.isArray(items.items)) items = items.items;
+      } catch (err) {
+        items = parseRSS(text);
+      }
+      if (Array.isArray(items) && items.length) {
+        return items.map(markRelevant).slice(0, 30);
+      }
+    } catch (err) {
+      // try next source
+    }
+  }
+  return [];
+}
+
+async function callDeepSeek(messages, model) {
+  const settings = state.settings;
+  const body = { messages, model: model || settings.deepseekModel || 'deepseek-chat' };
+  try {
+    const serverRes = await fetch('/api/deepseek', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (serverRes.ok) {
+      const data = await serverRes.json();
+      if (data.content) return data.content;
+    }
+  } catch (err) {
+    // fall through to direct call
+  }
+  if (!settings.deepseekApiKey) return null;
+  const base = (settings.deepseekBaseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
+  const res = await fetch(`${base}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + settings.deepseekApiKey
+    },
+    body: JSON.stringify({ model: body.model, messages })
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : null;
+}
+
+function newsCard(item) {
+  let source = item.source || '';
+  try {
+    source = source || new URL(item.link).hostname.replace(/^www\./, '');
+  } catch (err) {
+    source = source || '来源';
+  }
+  return `
+    <div class="news-card">
+      <div class="news-card-top">
+        <a href="${esc(item.link)}" target="_blank" rel="noopener">${esc(item.title)}</a>
+        <span class="tag ${item.relevant ? 'tag-green' : 'tag-steel'}">${item.relevant ? '高相关' : '线索'}</span>
+      </div>
+      <p>${esc(item.desc || item.snippet || '暂无摘要')}</p>
+      <div class="news-meta">
+        <span>${esc(source)}</span>
+        <span>${esc(item.pubDate || item.date || '')}</span>
+        <span>${item.keyword ? esc(item.keyword) : ''}</span>
+      </div>
+    </div>`;
+}
+
+function renderLive() {
+  const live = state.live;
+  const results = live.results || [];
+  const status = live.lastUpdate ? `更新于 ${live.lastUpdate}` : '尚未更新';
+  document.getElementById('view-live').innerHTML = `
+    <div class="panel live-panel">
+      <div class="schedule-toolbar">
+        <div class="section-title">
+          <h2>全网实时情报</h2>
+          <p>${status} · 当前 ${results.length} 条线索</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" type="button" data-action="live-refresh">立即刷新</button>
+          <button class="btn btn-ghost" type="button" data-action="live-summary">AI 摘要</button>
+        </div>
+      </div>
+      <div class="live-keywords">
+        <label class="field">
+          <span>监测关键词</span>
+          <textarea name="live-keywords" rows="3">${esc((live.keywords || []).join('\n'))}</textarea>
+        </label>
+        <div class="live-keyword-actions">
+          <button class="btn btn-ghost" type="button" data-action="live-save-keywords">保存关键词</button>
+          <label class="toggle-line">
+            <input type="checkbox" data-action="live-toggle-auto" ${live.autoRefresh ? 'checked' : ''}>
+            <span>每 30 分钟自动刷新</span>
+          </label>
+        </div>
+      </div>
+      ${live.summary ? `
+        <div class="ai-summary">
+          <div class="panel-head"><div><h2>AI 情报摘要</h2><p>DeepSeek 自动筛选与跟进建议</p></div></div>
+          <div class="panel-body"><pre>${esc(live.summary)}</pre></div>
+        </div>` : ''}
+      <div class="live-results">
+        ${results.length ? results.map(newsCard).join('') : `
+          <div class="empty">${icon('radio')}<div>暂无实时情报，点击立即刷新</div></div>`}
+      </div>
+    </div>`;
+  startLiveTimer();
+  if (!state.live.lastUpdate && state.live.autoRefresh) {
+    setTimeout(() => refreshLive(false), 300);
+  }
+}
+
+function startLiveTimer() {
+  if (window.__liveTimer) clearInterval(window.__liveTimer);
+  window.__liveTimer = null;
+  if (state.live.autoRefresh) {
+    window.__liveTimer = setInterval(() => refreshLive(false), 30 * 60 * 1000);
+  }
+}
+
+async function refreshLive(showStatus) {
+  const keywords = (state.live.keywords || []).filter((k) => String(k).trim()).map((k) => String(k).trim());
+  if (!keywords.length) {
+    toast('请先填写监测关键词');
+    return;
+  }
+  if (showStatus) toast('正在刷新全网情报...');
+  const results = await fetchNews(keywords);
+  state.live.results = results;
+  state.live.lastUpdate = new Date().toLocaleString('zh-CN', { hour12: false });
+  saveState();
+  renderLive();
+  refreshIcons();
+  if (showStatus) toast(`已更新 ${results.length} 条情报`);
+}
+
+async function generateWithDeepSeek() {
+  const gen = state.gen;
+  const scenario = SCENARIO_MAP[gen.scenario] || SCENARIO_MAP['钢衬四氟储罐/反应釜'];
+  const audience = AUDIENCE_MAP[gen.audience] || AUDIENCE_MAP['工厂老板'];
+  const format = FORMAT_MAP[gen.format] || FORMAT_MAP['短视频口播'];
+  const prompt = `你是江苏兆辉防腐科技的全网获客内容专家，专精钢衬四氟、钢衬PE/PO储罐、反应釜、塔器、管道、板衬四氟工艺。
+请围绕以下信息生成一份可以直接使用的内容方案，只输出 JSON：
+场景：${scenario.name}
+痛点：${scenario.pain}
+常见风险：${scenario.risks}
+正确做法：${scenario.proof}
+目标人群：${gen.audience}
+人群关注点：${audience.concern}
+内容形式：${gen.format}
+公司：${state.settings.company || '我们'}
+
+JSON 格式：
+{
+  "hook": "开场钩子",
+  "titles": ["标题1", "标题2", "标题3"],
+  "script": "完整脚本或大纲",
+  "caption": "发布文案",
+  "keywords": "SEO关键词",
+  "hashtags": "话题标签",
+  "cta": "转化引导"
+}`;
+  toast('DeepSeek 生成中...');
+  const content = await callDeepSeek([{ role: 'user', content: prompt }]);
+  if (!content) {
+    toast('DeepSeek 未配置或接口不可用，已用本地模板生成');
+    state.generated = buildGenerated(state.gen);
+    renderContent();
+    refreshIcons();
+    return;
+  }
+  const parsed = parseAIJSON(content);
+  if (parsed) {
+    state.generated = {
+      hook: parsed.hook || content,
+      titles: Array.isArray(parsed.titles) && parsed.titles.length ? parsed.titles : scenario.titles,
+      script: parsed.script || content,
+      caption: parsed.caption || content,
+      keywords: parsed.keywords || '',
+      hashtags: parsed.hashtags || '',
+      cta: parsed.cta || '',
+      meta: `DeepSeek · ${format.label}`
+    };
+  } else {
+    state.generated = {
+      hook: content.slice(0, 120),
+      titles: scenario.titles,
+      script: content,
+      caption: content,
+      keywords: '',
+      hashtags: '',
+      cta: '',
+      meta: `DeepSeek · ${format.label}`
+    };
+  }
+  saveState();
+  renderContent();
+  refreshIcons();
+  toast('DeepSeek 内容已生成');
+}
+
+function parseAIJSON(text) {
+  const cleaned = String(text || '').replace(/```json|```/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end < start) return null;
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch (err) {
+    return null;
+  }
+}
+
+async function summarizeLive() {
+  const results = state.live.results || [];
+  if (!results.length) {
+    toast('请先刷新获取情报');
+    return;
+  }
+  const sourceText = results.slice(0, 12).map((r, i) => `${i + 1}. ${r.title} ${r.desc || ''} ${r.link || ''}`).join('\n');
+  const prompt = `你是防腐衬里设备行业的销售情报分析师。请基于以下全网搜索结果，筛选出真正可能与钢衬四氟、钢衬PE/PO储罐、反应釜、塔器、管道、板衬四氟相关的招标、采购、项目线索，并给出今天最值得跟进的 3-5 条建议。
+
+搜索结果：
+${sourceText}
+
+请输出简短中文摘要，包含：值得关注的线索、每个线索的跟进动作、需要向客户确认的工况问题。`;
+  toast('AI 摘要生成中...');
+  const content = await callDeepSeek([{ role: 'user', content: prompt }]);
+  if (!content) {
+    toast('DeepSeek 未配置或接口不可用');
+    return;
+  }
+  state.live.summary = content;
+  saveState();
+  renderLive();
+  refreshIcons();
+  toast('AI 摘要已生成');
+}
+
 function openSettings() {
   const form = document.getElementById('settings-form');
   form.company.value = state.settings.company;
@@ -1112,6 +1417,9 @@ function openSettings() {
   form.phone.value = state.settings.phone;
   form.wechat.value = state.settings.wechat;
   form.website.value = state.settings.website;
+  form.deepseekApiKey.value = state.settings.deepseekApiKey || '';
+  form.deepseekBaseUrl.value = state.settings.deepseekBaseUrl || 'https://api.deepseek.com';
+  form.deepseekModel.value = state.settings.deepseekModel || 'deepseek-chat';
   document.getElementById('settings-modal').hidden = false;
 }
 
@@ -1243,6 +1551,8 @@ document.addEventListener('click', (e) => {
     renderContent();
     refreshIcons();
     toast('已生成新内容');
+  } else if (action === 'ai-generate') {
+    generateWithDeepSeek();
   } else if (action === 'copy') {
     copyOutput(el.dataset.copyKey);
   } else if (action === 'copy-all') {
@@ -1315,6 +1625,19 @@ document.addEventListener('click', (e) => {
     saveState();
     renderData();
     refreshIcons();
+  } else if (action === 'live-refresh') {
+    refreshLive(true);
+  } else if (action === 'live-summary') {
+    summarizeLive();
+  } else if (action === 'live-save-keywords') {
+    const ta = document.querySelector('[name="live-keywords"]');
+    if (ta) {
+      state.live.keywords = ta.value.split('\n').map((k) => k.trim()).filter(Boolean);
+      saveState();
+      renderLive();
+      refreshIcons();
+      toast('关键词已保存');
+    }
   } else if (action === 'reset-demo') {
     if (confirm('清空当前数据并恢复示例数据？')) {
       try {
@@ -1328,6 +1651,12 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('change', (e) => {
+  if (e.target.dataset.action === 'live-toggle-auto') {
+    state.live.autoRefresh = e.target.checked;
+    saveState();
+    startLiveTimer();
+    toast(e.target.checked ? '已开启自动刷新' : '已关闭自动刷新');
+  }
   if (e.target.id === 'gen-scenario') {
     state.gen.scenario = e.target.value;
     state.generated = buildGenerated(state.gen);
@@ -1404,7 +1733,10 @@ function handleFormSubmit(form) {
       products: String(fd.get('products') || '').trim(),
       phone: String(fd.get('phone') || '').trim(),
       wechat: String(fd.get('wechat') || '').trim(),
-      website: String(fd.get('website') || '').trim()
+      website: String(fd.get('website') || '').trim(),
+      deepseekApiKey: String(fd.get('deepseekApiKey') || '').trim(),
+      deepseekBaseUrl: String(fd.get('deepseekBaseUrl') || 'https://api.deepseek.com').trim(),
+      deepseekModel: String(fd.get('deepseekModel') || 'deepseek-chat').trim()
     };
     state.generated = buildGenerated(state.gen);
     saveState();
